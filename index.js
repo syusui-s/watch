@@ -201,6 +201,141 @@ window.addEventListener('DOMContentLoaded', () => {
 
   console.log("DONE");
 
+  let updateGainPattern;
+  let stopTickSound;
+  const startTickSound = () => {
+    console.log('Start tick sound');
+
+    const audioCtx = new AudioContext();
+
+    const noiseMixingMap = {
+      1: 0.7,
+      5: 0.6,
+      6: 0.6,
+      7: 0.5,
+      8: 0.5,
+      10: 0.4,
+      default: 0.5,
+    };
+
+    const frequencyMap = {
+      1: 5900,
+      5: 5950,
+      6: 6300,
+      7: 6500,
+      8: 7000,
+      10: 9500,
+      default: 7000,
+    };
+
+    const createNoiseBuffer = () => {
+      const buffer = audioCtx.createBuffer(
+        1,
+        1 * audioCtx.sampleRate,
+        audioCtx.sampleRate,
+      );
+      const channel = buffer.getChannelData(0);
+      for (let i = 0; i < channel.length; i++) {
+        channel[i] = Math.random() * 2 - 1;
+      }
+      return buffer;
+    };
+
+    const createGainPattern = () => {
+      const buffer = audioCtx.createBuffer(
+        1,
+        1 * audioCtx.sampleRate,
+        audioCtx.sampleRate,
+      );
+
+      const tickInterval = Math.floor(audioCtx.sampleRate / config.beatRate);
+      const tickPeriod = Math.floor(audioCtx.sampleRate * 0.0125);
+
+      const channel = buffer.getChannelData(0);
+      for (let i = 0; i < channel.length; i++) {
+        const t = i % tickInterval;
+        if (t > 0 && t < tickPeriod) {
+          channel[i] = -1 + 0.05 * (tickPeriod - t) / tickPeriod;
+        } else {
+          channel[i] = -1;
+        }
+      }
+
+      return buffer;
+    };
+
+    const noiseVolume = noiseMixingMap[config.beatRate] ?? noiseMixingMap.default;
+    const oscVolume = 1 - noiseVolume;
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = createNoiseBuffer();
+    noise.loop = true;
+
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(noiseVolume, audioCtx.currentTime);
+    noise.connect(noiseGain);
+
+    const osc = audioCtx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(
+      frequencyMap[config.beatRate] ?? frequencyMap.default,
+      audioCtx.currentTime,
+    );
+
+    const oscGain = audioCtx.createGain();
+    oscGain.gain.setValueAtTime(oscVolume, audioCtx.currentTime);
+    osc.connect(oscGain);
+
+    const gainNode = audioCtx.createGain();
+    noiseGain.connect(gainNode);
+    oscGain.connect(gainNode);
+
+    const gainPatternSource = audioCtx.createBufferSource();
+    gainPatternSource.buffer = createGainPattern();
+    gainPatternSource.loop = true;
+    gainPatternSource.connect(gainNode.gain);
+
+    const filterNode = audioCtx.createBiquadFilter();
+    filterNode.type = 'highpass';
+    filterNode.frequency.setValueAtTime(3600, 0);
+    filterNode.Q.setValueAtTime(0.9, 0);
+    gainNode.connect(filterNode);
+    filterNode.connect(audioCtx.destination);
+
+    const nextSecond = audioCtx.currentTime + 1 - (Date.now() % 1000) / 1000;
+    gainPatternSource.start(nextSecond);
+    osc.start(nextSecond);
+    noise.start(nextSecond);
+
+    stopTickSound = () => {
+      console.log('Stop tick sound');
+      stopTickSound = null;
+      updateGainPattern = null;
+
+      noise.stop();
+      noise.disconnect();
+      osc.stop();
+      osc.disconnect();
+      gainPatternSource.stop();
+      gainPatternSource.disconnect();
+    };
+  };
+
+  const restartTickSound = () => {
+    if (stopTickSound) {
+      stopTickSound();
+      startTickSound();
+    }
+  };
+
+  const toggleTickSound = () => {
+    if (stopTickSound) {
+      stopTickSound();
+    } else {
+      startTickSound()
+    }
+  };
+
   const beatRateInput = document.querySelector('#beat-rate');
   beatRateInput.value = config.beatRate;
   beatRateInput.addEventListener('change', (ev) => {
@@ -208,6 +343,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (value && /^[0-9]+$/.test(value)) {
       console.log('beat updated');
       config.beatRate = parseInt(value, 10);
+      restartTickSound();
     }
   });
 
@@ -255,5 +391,9 @@ window.addEventListener('DOMContentLoaded', () => {
       });
       cacheUpdated = true;
     }
+  });
+
+  document.querySelector('#play-tick').addEventListener('click', () => {
+    toggleTickSound();
   });
 });
