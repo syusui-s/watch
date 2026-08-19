@@ -215,9 +215,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const audioCtx = new AudioContext();
 
     const noiseMixingMap = {
-      1: 0.7,
+      1: 0.75,
       5: 0.6,
-      6: 0.6,
+      6: 0.5,
       7: 0.5,
       8: 0.5,
       10: 0.4,
@@ -225,19 +225,19 @@ window.addEventListener('DOMContentLoaded', () => {
     };
 
     const frequencyMap = {
-      1: 5900,
-      5: 5950,
-      6: 6300,
-      7: 6500,
-      8: 7000,
+      1: 7100,
+      5: 7050,
+      6: 7100,
+      7: 7400,
+      8: 8800,
       10: 9500,
-      default: 7000,
+      default: 8000,
     };
 
     const createNoiseBuffer = () => {
       const buffer = audioCtx.createBuffer(
         1,
-        1 * audioCtx.sampleRate,
+        2 * audioCtx.sampleRate,
         audioCtx.sampleRate,
       );
       const channel = buffer.getChannelData(0);
@@ -250,7 +250,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const createGainPattern = () => {
       const buffer = audioCtx.createBuffer(
         1,
-        1 * audioCtx.sampleRate,
+        2 * audioCtx.sampleRate,
         audioCtx.sampleRate,
       );
 
