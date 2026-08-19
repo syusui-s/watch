@@ -173,6 +173,7 @@ window.addEventListener('DOMContentLoaded', () => {
     ctx.fill();
   });
 
+  let lastSecond = -1;
   const frame = () => {
     const now = new Date();
 
@@ -180,8 +181,12 @@ window.addEventListener('DOMContentLoaded', () => {
     const msBase = Math.floor(ms / config.beatPeriodMs) * config.beatPeriodMs;
     const msEase = (ms % config.beatPeriodMs) > config.toMovePeriodMs ? (ms % config.beatPeriodMs) : 0;
     const second = now.getSeconds() + (msBase + msEase) / 1000;
-    const secondRad = Math.PI - 2 * Math.PI * second / 60;
+    if (lastSecond === second) {
+      requestAnimationFrame(frame);
+      return;
+    }
 
+    const secondRad = Math.PI - 2 * Math.PI * second / 60;
     const minuteRad = Math.PI - 2 * Math.PI * (now.getMinutes() + second / 60) / 60;
     const hourRad = Math.PI - 2 * Math.PI * (now.getHours() + now.getMinutes() / 60 + second / 3600) / 12;
 
@@ -194,6 +199,7 @@ window.addEventListener('DOMContentLoaded', () => {
     drawHand(Math.PI + secondRad, 0.2, 0.01);
     drawSecondHandCircle();
 
+    lastSecond = second;
     requestAnimationFrame(frame);
   };
 
