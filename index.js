@@ -258,12 +258,15 @@ window.addEventListener('DOMContentLoaded', () => {
       const tickPeriod = Math.floor(audioCtx.sampleRate * 0.0125);
 
       const channel = buffer.getChannelData(0);
+      let volFactor = 0;
       for (let i = 0; i < channel.length; i++) {
         const t = i % tickInterval;
         if (t > 0 && t < tickPeriod) {
-          channel[i] = -1 + 0.05 * (tickPeriod - t) / tickPeriod;
+          if (volFactor === 0) volFactor = 0.8 + Math.random() / 5;
+          channel[i] = -1 + 0.05 * (tickPeriod - t) / tickPeriod * volFactor;
         } else {
           channel[i] = -1;
+          volFactor = 0;
         }
       }
 
